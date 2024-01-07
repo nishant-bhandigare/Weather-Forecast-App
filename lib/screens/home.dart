@@ -4,8 +4,9 @@ import 'package:weather/weather.dart';
 import 'package:weather_forecast_app/backend/api_key.dart';
 import 'package:weather_forecast_app/widgets/display.dart';
 import 'package:weather_forecast_app/widgets/info.dart';
+import 'package:weather_forecast_app/widgets/sunrise_sunset.dart';
 
-class HomeScreen extends StatefulWidget{
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
@@ -13,15 +14,20 @@ class HomeScreen extends StatefulWidget{
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+    @override
+    void initState() {
+      super.initState();
+      _getCurrentPosition();
+    }
 
   String? _currentAddress;
   Position? _currentPosition;
-  // double lat = 19.378808;
-  // double long = 72.824551;
   double lat = 0.0;
   double long = 0.0;
   String key = api_key;
-  String cityName = 'Kongens Lyngby';
+
+  Weather? _weather;
+  List<Weather>? _forecast;
 
   Future<bool> _handleLocationPermission() async {
     bool serviceEnabled;
@@ -32,7 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
               'Location services are disabled. Please enable the services')));
-      // print('Location services are disabled. Please enable the services');
       return false;
     }
     permission = await Geolocator.checkPermission();
@@ -41,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (permission == LocationPermission.denied) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Location permissions are denied')));
-        // print('Location permissions are denied');
         return false;
       }
     }
@@ -49,8 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
               'Location permissions are permanently denied, we cannot request permissions.')));
-      // print(
-      //     'Location permissions are permanently denied, we cannot request permissions.');
       return false;
     }
     return true;
@@ -65,61 +67,35 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentPosition = position;
         lat = position.latitude;
         long = position.longitude;
+        getWeather(lat, long);
+        getDailyForecast(lat, long);
       });
     }).catchError((e) {
       debugPrint(e);
     });
   }
 
-
-  // Future<void> getWeather(double latitude, double longitude) async {
-  //   final String apiKey = key;
-  //   WeatherFactory wf = WeatherFactory(apiKey);
-  //
-  //   try {
-  //     Weather? weather = await wf.currentWeatherByLocation(latitude, longitude);
-  //
-  //     if (weather != null) {
-  //       // print('Location: ${weather.areaName}');
-  //       if (weather.temperature != null) {
-  //         // print('Temperature: ${weather.temperature!.celsius}°C');
-  //       } else {
-  //         // print('Temperature not available');
-  //       }
-  //       // print('Weather: ${weather.weatherDescription}');
-  //       // print('Weather: ${weather.weatherDescription}');
-  //       // print('Humidity: ${weather.humidity}%');
-  //       // print('Wind Speed: ${weather.windSpeed} m/s');
-  //       // print('Pressure: ${weather.pressure} hPa');
-  //       // print('Sunrise: ${weather.sunrise}');
-  //       // print('Sunset: ${weather.sunset}');
-  //       print(weather);
-  //     } else {
-  //       print('Weather data not available');
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching weather: $e');
-  //   }
-  // }
-
   Future<void> getWeather(double latitude, double longitude) async {
-    final String apiKey = key; // Replace with your actual API key
+    const String apiKey = api_key;
     WeatherFactory wf = WeatherFactory(apiKey);
 
     try {
-      Weather? weather = await wf.currentWeatherByLocation(latitude, longitude);
+      final weather = await wf.currentWeatherByLocation(latitude, longitude);
+      setState(() {
+        _weather = weather;
+      });
 
       if (weather != null) {
-        print('Place Name: ${weather.areaName}');
-        print('Date: ${weather.date}');
-        print('Weather: ${weather.weatherDescription}');
-        print('Temperature: ${weather.temperature?.celsius}°C');
-        print('Temp (min): ${weather.tempMin?.celsius}°C');
-        print('Temp (max): ${weather.tempMax?.celsius}°C');
-        // print('Temp (feels like): ${weather.feelsLike?.celsius}°C');
-        print('Sunrise: ${weather.sunrise}');
-        print('Sunset: ${weather.sunset}');
-        print('Weather Condition code: ${weather.weatherConditionCode}');
+        print("Date ${_weather?.date?.day}");
+        print("Cloudiness ${_weather?.cloudiness}");
+        print("Humidity ${_weather?.humidity}");
+        print("Pressure ${_weather?.pressure}");
+        print("Sunrise ${_weather?.sunrise}");
+        print("Sunset ${_weather?.sunset}");
+        print("Weather Description ${_weather?.weatherDescription}");
+        print("Weather Icon ${_weather?.weatherIcon}");
+
+
       } else {
         print('Weather data not available');
       }
@@ -128,31 +104,45 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> getDailyForecast(double latitude, double longitude) async {
+    final String apiKey = api_key;
+    WeatherFactory wf = WeatherFactory(apiKey);
 
+    try {
+      final forecast = await wf.fiveDayForecastByLocation(latitude, longitude);
+      if (forecast != null && forecast.isNotEmpty) {
+        setState(() {
+          _forecast = forecast;
+        });
+      } else {
+        print('Forecast data not available');
+      }
+    } catch (e) {
+      print('Error fetching forecast: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // backgroundColor: const Color.fromRGBO(34, 42, 54, 1),
+      backgroundColor: Colors.black54,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(5.0),
           child: Column(
             children: [
-              DisplayWidget(),
-              InfoBar(),
-              // Text('LAT: ${_currentPosition?.latitude ?? ""}'),
-              // Text('LNG: ${_currentPosition?.longitude ?? ""}'),
-              Text('LAT: ${lat}'),
-              Text('LNG: ${long}'),
-              Text('ADDRESS: ${_currentAddress ?? ""}'),
-              const SizedBox(height: 32),
+              DisplayWidget(
+                  temp: _weather?.temperature?.celsius?.toInt() ?? 0,
+                  realFeel: _weather?.tempFeelsLike?.celsius?.toInt() ?? 0),
+              InfoBar(weather: _weather),
+              SunriseSunset(weather: _weather,),
               ElevatedButton(
-                onPressed: (){
+                onPressed: () {
                   _getCurrentPosition();
-                  getWeather(lat, long);
                 },
-                child: const Text("Get Current Location"),
-              )
+                child: const Text("Update"),
+              ),
             ],
           ),
         ),
