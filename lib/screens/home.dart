@@ -137,12 +137,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   realFeel: _weather?.tempFeelsLike?.celsius?.toInt() ?? 0),
               InfoBar(weather: _weather),
               SunriseSunset(weather: _weather,),
-              ElevatedButton(
-                onPressed: () {
-                  _getCurrentPosition();
-                },
-                child: const Text("Update"),
-              ),
+              // ElevatedButton(
+              //   onPressed: () {
+              //     _getCurrentPosition();
+              //   },
+              //   child: const Text("Update"),
+              // ),
             ],
           ),
         ),

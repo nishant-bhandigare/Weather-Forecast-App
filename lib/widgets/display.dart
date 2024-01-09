@@ -30,7 +30,7 @@ class DisplayWidget extends StatelessWidget{
 
     return Container(
       width: double.infinity,
-      height: MediaQuery.of(context).size.height*0.55,
+      height: MediaQuery.of(context).size.height*0.48,
       margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
